@@ -1,5 +1,7 @@
 """All visuals in one file: scene rendering, GIF recording, learning plot."""
 
+from __future__ import annotations
+
 import math
 import os
 
@@ -45,16 +47,16 @@ class _Popup:
 
 
 class Renderer:
-    def __init__(self, screen):
+    def __init__(self, screen: pygame.Surface) -> None:
         self.screen = screen
         self.font = pygame.font.SysFont("arial", 16, bold=True)
         self.small = pygame.font.SysFont("arial", 12)
         self.big = pygame.font.SysFont("arial", 20, bold=True)
         self.tiny = pygame.font.SysFont("arial", 10, bold=True)
         self._pulse = 0.0
-        self._popups = []
+        self._popups: list[_Popup] = []
 
-    def popup(self, reward, gx, gy):
+    def popup(self, reward: float, gx: int, gy: int) -> None:
         if abs(reward) < 0.5:
             return
         x = FIELD_X + gx * CELL_SIZE + CELL_SIZE // 2
@@ -194,21 +196,31 @@ class Renderer:
 # periodic episode (late). Saved together so you see the contrast.
 # ---------------------------------------------------------------------
 class GifRecorder:
-    def __init__(self, out_path="training.gif", scale=0.6,
-                 stride=2, fps=14, max_frames=180, every=60):
+    STAMP_HEIGHT = 20
+
+    def __init__(
+        self,
+        out_path: str = "training.gif",
+        scale: float = 0.6,
+        stride: int = 2,
+        fps: int = 14,
+        max_frames: int = 180,
+        every: int = 60,
+    ) -> None:
         self.out_path = out_path
         self.scale = scale
         self.stride = max(1, int(stride))
         self.fps = fps
         self.max_frames = max_frames
         self.every = max(1, int(every))
-        self._early = []
-        self._late = []
-        self._cur = []
-        self._kind = None
+        self._early: list[np.ndarray] = []
+        self._late: list[np.ndarray] = []
+        self._cur: list[np.ndarray] = []
+        self._kind: str | None = None
         self._counter = 0
+        self._stamp_font: pygame.font.Font | None = None
 
-    def start(self, ep):
+    def start(self, ep: int) -> None:
         self._commit()
         self._cur = []
         self._counter = 0
@@ -219,7 +231,7 @@ class GifRecorder:
         else:
             self._kind = None
 
-    def _commit(self):
+    def _commit(self) -> None:
         if not self._cur or self._kind is None:
             return
         if self._kind == "early" and not self._early:
@@ -227,10 +239,10 @@ class GifRecorder:
         elif self._kind == "late":
             self._late = self._cur
 
-    def active(self):
+    def active(self) -> bool:
         return self._kind is not None and len(self._cur) < self.max_frames
 
-    def capture(self, screen, label=None):
+    def capture(self, screen: pygame.Surface, label: str | None = None) -> None:
         if not self.active():
             return
         self._counter += 1
@@ -247,20 +259,21 @@ class GifRecorder:
             arr = self._stamp(arr, label)
         self._cur.append(arr.astype(np.uint8))
 
-    @staticmethod
-    def _stamp(arr, label):
+    def _stamp(self, arr: np.ndarray, label: str) -> np.ndarray:
+        # Cache font once — was being re-created for every frame.
+        if self._stamp_font is None:
+            self._stamp_font = pygame.font.SysFont("arial", 12, bold=True)
         h, w = arr.shape[:2]
-        sh = 20
+        sh = self.STAMP_HEIGHT
         surf = pygame.Surface((w, sh))
         surf.fill((18, 22, 30))
-        font = pygame.font.SysFont("arial", 12, bold=True)
-        surf.blit(font.render(label, True, (240, 240, 220)), (8, 3))
+        surf.blit(self._stamp_font.render(label, True, (240, 240, 220)), (8, 3))
         strip = np.transpose(pygame.surfarray.array3d(surf), (1, 0, 2))
         out = arr.copy()
         out[:sh] = strip
         return out
 
-    def save(self):
+    def save(self) -> bool:
         self._commit()
         frames = list(self._early) + list(self._late)
         if not frames:
@@ -282,7 +295,16 @@ class GifRecorder:
 #   * line flat   -> agent has converged (no more learning to do)
 #   * line noisy  -> still exploring
 # ---------------------------------------------------------------------
-def plot_rewards(rewards, save_path="training_progress.png", stopped_early=None):
+def plot_rewards(
+    rewards: list[float],
+    save_path: str = "training_progress.png",
+    stopped_early: int | None = None,
+    show: bool = False,
+) -> None:
+    import matplotlib
+    if not show:
+        # Use a non-GUI backend so headless runs don't block.
+        matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     r = np.array(rewards, dtype=float)
@@ -318,8 +340,8 @@ def plot_rewards(rewards, save_path="training_progress.png", stopped_early=None)
             arrowprops=dict(arrowstyle="->", color="#b8860b", lw=1),
         )
 
-    ax.set_xlabel("Episode", fontsize=12)
-    ax.set_ylabel("Reward per episode", fontsize=12)
+    ax.set_xlabel("Episodes", fontsize=12)
+    ax.set_ylabel("Accumulated rewards", fontsize=12)
     ax.set_title(
         "Learning curve — rises while learning, flattens once converged",
         fontsize=13, fontweight="bold", pad=10,
@@ -340,4 +362,6 @@ def plot_rewards(rewards, save_path="training_progress.png", stopped_early=None)
 
     plt.tight_layout(rect=(0, 0.03, 1, 1))
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
-    plt.show()
+    if show:
+        plt.show()
+    plt.close(fig)

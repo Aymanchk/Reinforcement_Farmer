@@ -4,7 +4,10 @@ The agent sees the world through `apply_action` and the cell states below.
 Nothing here depends on pygame — this module is pure game logic.
 """
 
+from __future__ import annotations
+
 import math
+from typing import TypedDict
 
 # ---- Window / layout ----
 WINDOW_W, WINDOW_H = 640, 540
@@ -61,30 +64,32 @@ R_MOVE = -0.05
 class Cell:
     __slots__ = ("state", "crop", "grow", "ready", "watered")
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.reset()
 
-    def reset(self):
-        self.state = S_EMPTY
-        self.crop = C_NONE
-        self.grow = 0
-        self.ready = 0
-        self.watered = False
+    def reset(self) -> None:
+        self.state: int = S_EMPTY
+        self.crop: int = C_NONE
+        self.grow: int = 0
+        self.ready: int = 0
+        self.watered: bool = False
 
 
 class Farm:
-    def __init__(self):
-        self.grid = [[Cell() for _ in range(GRID_W)] for _ in range(GRID_H)]
+    def __init__(self) -> None:
+        self.grid: list[list[Cell]] = [
+            [Cell() for _ in range(GRID_W)] for _ in range(GRID_H)
+        ]
 
-    def reset(self):
+    def reset(self) -> None:
         for row in self.grid:
             for c in row:
                 c.reset()
 
-    def cell(self, x, y):
+    def cell(self, x: int, y: int) -> Cell:
         return self.grid[y][x]
 
-    def tick(self):
+    def tick(self) -> int:
         """Advance biology by one step. Returns number of newly-withered cells."""
         withered = 0
         for row in self.grid:
@@ -95,6 +100,7 @@ class Farm:
                 elif c.state == S_GROWING:
                     c.grow += 1
                     need = GROW_STEPS[c.crop]
+                    # Watering shortens grow time by 1 step.
                     if (c.watered and c.grow >= need - 1) or c.grow >= need:
                         c.state = S_READY
                         c.ready = 0
@@ -110,20 +116,20 @@ class Farm:
 class Farmer:
     TRAVEL_TIME = 0.4  # seconds to reach any target cell
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.reset()
 
-    def reset(self):
-        self.x = 0
-        self.y = 0
-        self.px = FIELD_X + CELL_SIZE // 2
-        self.py = FIELD_Y + CELL_SIZE // 2
-        self.target_px = self.px
-        self.target_py = self.py
-        self.speed = 0.0
-        self.action = "IDLE"
+    def reset(self) -> None:
+        self.x: int = 0
+        self.y: int = 0
+        self.px: float = FIELD_X + CELL_SIZE // 2
+        self.py: float = FIELD_Y + CELL_SIZE // 2
+        self.target_px: float = self.px
+        self.target_py: float = self.py
+        self.speed: float = 0.0
+        self.action: str = "IDLE"
 
-    def go_to(self, gx, gy):
+    def go_to(self, gx: int, gy: int) -> None:
         self.x = gx
         self.y = gy
         tp_x = FIELD_X + gx * CELL_SIZE + CELL_SIZE // 2
@@ -133,7 +139,7 @@ class Farmer:
         self.target_py = tp_y
         self.speed = max(60.0, dist / self.TRAVEL_TIME) if dist > 0 else 0.0
 
-    def step(self, dt):
+    def step(self, dt: float) -> None:
         dx = self.target_px - self.px
         dy = self.target_py - self.py
         dist = math.hypot(dx, dy)
@@ -145,12 +151,29 @@ class Farmer:
         self.px += dx / dist * s
         self.py += dy / dist * s
 
-    def arrived(self):
+    def snap_to_target(self) -> None:
+        """Teleport to the current target — used to skip animation."""
+        self.px = self.target_px
+        self.py = self.target_py
+
+    def arrived(self) -> bool:
         return (abs(self.target_px - self.px) < 1
                 and abs(self.target_py - self.py) < 1)
 
 
-def apply_action(farm, farmer, action, tx, ty, money):
+class StepInfo(TypedDict):
+    harvested: bool
+    withered: int
+
+
+def apply_action(
+    farm: Farm,
+    farmer: Farmer,
+    action: int,
+    tx: int,
+    ty: int,
+    money: int,
+) -> tuple[float, int, bool, StepInfo]:
     """Execute `action` at cell (tx, ty). Returns (reward, money, done, info)."""
     reward = 0.0
     done = False
