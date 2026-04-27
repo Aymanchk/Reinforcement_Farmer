@@ -1,4 +1,3 @@
-"""Q-Learning agent. Tabular, ε-greedy, Bellman update."""
 
 from __future__ import annotations
 

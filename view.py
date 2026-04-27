@@ -31,9 +31,8 @@ ACTION_COLORS = {
 CROP_COLORS = {C_WHEAT: WHEAT, C_CARROT: CARROT, C_PUMPKIN: PUMPKIN}
 
 
-# ---------------------------------------------------------------------
 # Rendering
-# ---------------------------------------------------------------------
+
 class _Popup:
     __slots__ = ("text", "x", "y", "color", "life", "max_life")
 
@@ -191,10 +190,8 @@ class Renderer:
             (WINDOW_W - 150, 28))
 
 
-# ---------------------------------------------------------------------
-# GIF recorder: two buffers — episode 1 (early) and the most recent
-# periodic episode (late). Saved together so you see the contrast.
-# ---------------------------------------------------------------------
+
+# GIF recorder
 class GifRecorder:
     STAMP_HEIGHT = 20
 
@@ -289,12 +286,6 @@ class GifRecorder:
         return True
 
 
-# ---------------------------------------------------------------------
-# Learning curve: rolling-mean reward per episode.
-#   * line rises  -> agent is improving
-#   * line flat   -> agent has converged (no more learning to do)
-#   * line noisy  -> still exploring
-# ---------------------------------------------------------------------
 def plot_rewards(
     rewards: list[float],
     save_path: str = "training_progress.png",
@@ -303,7 +294,6 @@ def plot_rewards(
 ) -> None:
     import matplotlib
     if not show:
-        # Use a non-GUI backend so headless runs don't block.
         matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -313,11 +303,6 @@ def plot_rewards(
         return
     ep = np.arange(1, n + 1)
 
-    # Running mean from episode 1 onwards: smoothed[i] = mean(r[:i+1]).
-    # By construction this is monotonic-ish — it can only move as much as a
-    # single new episode pulls the mean — so the curve rises while the
-    # agent improves, then flattens as each new episode has a smaller
-    # effect on the accumulated average.
     smoothed = np.cumsum(r) / np.arange(1, n + 1)
 
     plt.style.use("seaborn-v0_8-whitegrid")

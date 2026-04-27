@@ -9,7 +9,6 @@ from __future__ import annotations
 import math
 from typing import TypedDict
 
-# ---- Window / layout ----
 WINDOW_W, WINDOW_H = 640, 540
 HUD_H = 50
 CELL_SIZE = 90
@@ -20,7 +19,6 @@ FIELD_X = (WINDOW_W - FIELD_W) // 2
 FIELD_Y = HUD_H + 25
 FPS = 30
 
-# ---- Colors ----
 BG = (34, 42, 50)
 GRASS = (95, 145, 65)
 PLOWED = (115, 75, 45)
@@ -33,27 +31,22 @@ PUMPKIN = (222, 120, 30)
 HUD_BG = (40, 50, 60)
 HUD_TEXT = (240, 240, 220)
 
-# ---- Cell states ----
 S_EMPTY, S_PLOWED, S_SEEDED, S_GROWING, S_READY, S_WITHERED = range(6)
 
-# ---- Crops ----
 C_NONE, C_WHEAT, C_CARROT, C_PUMPKIN = range(4)
 GROW_STEPS = {C_WHEAT: 5, C_CARROT: 8, C_PUMPKIN: 12}
 PRICE = {C_WHEAT: 10, C_CARROT: 20, C_PUMPKIN: 40}
 
-# ---- Game balance ----
-WITHER_STEPS = 40    # how long a READY crop waits before rotting
+WITHER_STEPS = 40
 PLANT_COST = 5
 START_MONEY = 50
 
-# ---- Actions ----
 A_PLOW, A_WHEAT, A_CARROT, A_PUMPKIN, A_WATER, A_HARVEST, A_MOVE = range(7)
 NUM_ACTIONS = 7
 ACTION_NAMES = ["PLOW", "PLANT_WHEAT", "PLANT_CARROT",
                 "PLANT_PUMPKIN", "WATER", "HARVEST", "MOVE"]
 _ACTION_TO_CROP = {A_WHEAT: C_WHEAT, A_CARROT: C_CARROT, A_PUMPKIN: C_PUMPKIN}
 
-# ---- Rewards ----
 R_SUCCESS = 1
 R_ILLEGAL = -1
 R_WITHER = -5
@@ -100,7 +93,6 @@ class Farm:
                 elif c.state == S_GROWING:
                     c.grow += 1
                     need = GROW_STEPS[c.crop]
-                    # Watering shortens grow time by 1 step.
                     if (c.watered and c.grow >= need - 1) or c.grow >= need:
                         c.state = S_READY
                         c.ready = 0
@@ -114,7 +106,7 @@ class Farm:
 
 
 class Farmer:
-    TRAVEL_TIME = 0.4  # seconds to reach any target cell
+    TRAVEL_TIME = 0.4
 
     def __init__(self) -> None:
         self.reset()

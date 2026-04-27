@@ -28,7 +28,7 @@ MAX_ANIMATED_STEPS = 30
 
 # ---- Early stopping ----
 ES_WINDOW = 40       # rolling-mean window
-ES_MIN_EP = 100      # don't stop before this
+ES_MIN_EP = 301      # don't stop before this
 ES_PATIENCE = 50     # no-improvement episodes before stopping
 ES_MIN_DELTA = 2.0
 
